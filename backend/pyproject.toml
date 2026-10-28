@@ -11,10 +11,13 @@ dependencies = [
     "matplotlib",
     "torch",
     "torch_geometric",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
 ]
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "httpx"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
