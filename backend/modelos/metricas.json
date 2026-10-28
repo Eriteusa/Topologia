@@ -1,0 +1,50 @@
+{
+  "semilla": 42,
+  "escala_peso": 1.0,
+  "grafos": {
+    "entrenamiento": 700,
+    "validacion": 150,
+    "prueba": 150
+  },
+  "porcentaje_anomalos": 23.21999967098236,
+  "pesos_de_clase": [
+    0.6482282280921936,
+    2.186589002609253
+  ],
+  "gcn": {
+    "parametros": 266,
+    "epocas": 98,
+    "mejor_epoca": 78,
+    "precision": 0.585394581861013,
+    "recall": 0.8843416370106761,
+    "f1": 0.7044649184975195,
+    "matriz_confusion": [
+      [
+        1336,
+        352
+      ],
+      [
+        65,
+        497
+      ]
+    ]
+  },
+  "mlp": {
+    "parametros": 266,
+    "epocas": 39,
+    "mejor_epoca": 19,
+    "precision": 0.729818780889621,
+    "recall": 0.7882562277580071,
+    "f1": 0.757912745936698,
+    "matriz_confusion": [
+      [
+        1524,
+        164
+      ],
+      [
+        119,
+        443
+      ]
+    ]
+  }
+}

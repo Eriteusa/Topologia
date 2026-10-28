@@ -5,6 +5,12 @@ description = "Prototipo SoftCast: grafo de red, GNN y autómata finito"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "networkx",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "torch",
+    "torch_geometric",
 ]
 
 [dependency-groups]
