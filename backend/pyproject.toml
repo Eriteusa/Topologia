@@ -1,0 +1,21 @@
+[project]
+name = "softcast"
+version = "0.1.0"
+description = "Prototipo SoftCast: grafo de red, GNN y autómata finito"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "networkx",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["softcast"]
