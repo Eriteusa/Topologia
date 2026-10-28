@@ -6,7 +6,7 @@ Lee primero **`CONTEXTO.md`**: es la especificación completa, con datos exactos
 
 - **Trabaja por fases**, en el orden de abajo. Al terminar cada fase, corre sus pruebas, muestra un resumen corto (qué quedó, qué pruebas pasaron) y **espera confirmación** antes de seguir.
 - Los datos de `CONTEXTO.md` (latencias, umbrales, δ, arquitectura) son fijos porque ya están en un documento entregado. **No los cambies.** Si algo parece inconsistente, pregunta. La única extensión es el criterio de vecindad de §3.1, que conserva el umbral original y la Tabla 2.1.
-- Proyecto local; todavía no hay repositorio remoto. Inicializa git y haz commits pequeños por fase, pero **no hagas push**.
+- Haz commits pequeños por fase. El remoto es `git@github.com:Eriteusa/Topologia.git` (rama `main`; la rama local es `master`). **Solo hagas push cuando el usuario lo pida**, sin `--force`.
 - Idioma: identificadores de dominio en español (`latencia_ms`, `bloqueado`, `recorrido`), textos de interfaz en español y comentarios en español, breves.
 - Usa siempre "sustentación", nunca "exposición".
 - **Estilo de interfaz** (el que el profesor aprobó en el proyecto de la pinza): minimalista y funcional; **sin texto narrativo, subtítulos ni frases de tutorial** en la UI; modo claro; mensajes solo cuando hay un resultado que mostrar. Los textos de interfaz nombran cosas (paneles, campos, resultados), no explican cómo usarlas.
