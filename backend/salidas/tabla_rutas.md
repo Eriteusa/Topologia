@@ -1,0 +1,10 @@
+# Bloqueo y recálculo de rutas (PC3 a IoT4)
+
+| Iteración | Aristas bloqueadas | Ruta óptima (Dijkstra) | Latencia (ms) | Verificación de latencia | Empate descartado |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Ninguna | PC3 → S2 → S1 → IoT4 | 26 | 4 + 2 + 20 = 26 ms | — |
+| 2 | S2–S1 | PC3 → S2 → IoT5 → IoT4 | 30 | 4 + 21 + 5 = 30 ms | — |
+| 3 | S2–S1, PC3–S2 | PC3 → PC4 → S2 → IoT5 → IoT4 | 34 | 3 + 5 + 21 + 5 = 34 ms | — |
+| 4 | S2–S1, PC3–S2, IoT5–IoT4 | PC3 → PC2 → PC1 → IoT1 → S1 → IoT4 | 54 | 4 + 3 + 15 + 12 + 20 = 54 ms | PC3 → PC4 → PC5 → PC6 → IoT6 → S1 → IoT4 |
+| 5 | S2–S1, PC3–S2, IoT5–IoT4, PC3–PC2 | PC3 → PC4 → PC5 → PC6 → IoT6 → S1 → IoT4 | 54 | 3 + 4 + 3 + 14 + 10 + 20 = 54 ms | — |
+| 6 | S2–S1, PC3–S2, IoT5–IoT4, PC3–PC2, PC3–PC4 | Sin camino disponible | — | — | — |

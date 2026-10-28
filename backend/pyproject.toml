@@ -9,7 +9,7 @@ dependencies = [
     "scipy",
     "scikit-learn",
     "matplotlib",
-    "torch",
+    "torch==2.14.1",  # la versión con la que se entrenaron los modelos de modelos/
     "torch_geometric",
     "fastapi",
     "uvicorn",

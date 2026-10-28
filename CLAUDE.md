@@ -14,7 +14,8 @@ Lee primero **`CONTEXTO.md`**: es la especificación completa, con datos exactos
 ## Entorno
 
 - **Sistema:** Ubuntu 26.04 (paquetes del sistema con `apt`, no `dnf`). El Python del sistema es 3.14, que puede no ser compatible con PyTorch, así que **usa `uv` con Python 3.12** para el backend. `uv` puede no estar instalado: `curl -LsSf https://astral.sh/uv/install.sh | sh`, luego `uv python install 3.12` y `uv venv --python 3.12`.
-- **PyTorch:** versión CPU (`uv pip install torch --index-url https://download.pytorch.org/whl/cpu`). **PyTorch Geometric:** solo `torch_geometric`, sin extensiones compiladas (no hacen falta para `GCNConv`).
+- **Ejecutar:** con `uv run --no-sync ...` (o `.venv/bin/python`); sin `--no-sync`, `uv run` vuelve a resolver dependencias y puede traer PyTorch con CUDA. Ver `README.md`.
+- **PyTorch:** versión CPU (`uv pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu`). **PyTorch Geometric:** solo `torch_geometric`, sin extensiones compiladas (no hacen falta para `GCNConv`).
 - **Otras dependencias del backend:** `networkx numpy scipy scikit-learn fastapi uvicorn pydantic pytest httpx matplotlib` (`httpx` para `TestClient`, `matplotlib` para las figuras).
 - **Frontend:** Node ya está instalado vía nvm (v24). Si falta: `sudo apt install nodejs npm`.
 

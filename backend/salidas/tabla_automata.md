@@ -1,0 +1,13 @@
+# Cadenas de prueba del autómata
+
+| Cadena | Recorrido | Estado final | Resultado | Motivo |
+| --- | --- | --- | --- | --- |
+| abcde | q0 → q1 → q2 → q3 → q4 → q5 | q5 | Aceptada | Secuencia completa |
+| abcccde | q0 → q1 → q2 → q3 → q3 → q3 → q4 → q5 | q5 | Aceptada | Varias transmisiones |
+| ac | q0 → q1 → qNP | qNP | Rechazada | Transmite sin autenticar |
+| abde | q0 → q1 → q2 → qNP → qNP | qNP | Rechazada | Falta al menos una c |
+| abcdef | q0 → q1 → q2 → q3 → q4 → q5 → qNP | qNP | Rechazada | Evento después de finalizar |
+| abcfde | q0 → q1 → q2 → q3 → qNP → qNP → qNP | qNP | Rechazada | Timeout en transmisión |
+| aabcde | q0 → q1 → qNP → qNP → qNP → qNP → qNP | qNP | Rechazada | Solicitud repetida |
+| (vacía) | q0 | q0 | Rechazada | No inicia comunicación |
+| abz | q0 → q1 → q2 | q2 | Rechazada | símbolo fuera del alfabeto: z |
