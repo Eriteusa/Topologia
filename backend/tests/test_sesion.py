@@ -148,6 +148,18 @@ def test_respaldo_por_umbral_si_no_hay_modelo():
     assert {n["id"] for n in red["nodos"] if n["estado"] == "Anómalo"} == {"PC2", "IoT2", "IoT7"}
 
 
+def test_la_gnn_reproduce_los_anomalos_de_la_tabla_3_en_el_escenario_base():
+    red = Sesion(42, bloqueo_inicial=False).red()
+    assert red["fuente"] == "gnn"
+    assert {n["id"] for n in red["nodos"] if n["estado"] == "Anómalo"} == {"PC2", "IoT2", "IoT7"}
+
+
+def test_los_vecinos_de_un_anomalo_quedan_a_lo_sumo_en_alerta_temprana_en_el_escenario_base():
+    niveles = {n["id"]: n["nivel_alerta"] for n in Sesion(42, bloqueo_inicial=False).red()["nodos"]}
+    assert niveles["S1"] == niveles["IoT1"] == "Alerta temprana"
+    assert {i for i, nivel in niveles.items() if nivel == "Anómalo"} == {"PC2", "IoT2", "IoT7"}
+
+
 def test_latencias_aleatorias_caen_en_su_rango_y_repiten_con_la_semilla():
     a, b = Sesion(3, latencias="aleatorias"), Sesion(3, latencias="aleatorias")
     lat = lambda s: {x["id"]: x["latencia_ms"] for x in s.red()["aristas"]}

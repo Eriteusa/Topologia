@@ -81,14 +81,26 @@ def a_data(nodos, aristas, clases=None, escala_peso=1.0):
     return data
 
 
+def calibrar(p_anomalo, razon_pesos):
+    """
+    Corrige el sesgo de los pesos de clase. Entrenar con pesos inversos a la frecuencia
+    multiplica por `razon_pesos` los odds a favor de Anómalo; aquí se deshace, de modo
+    que p_anomalo vuelve a ser una probabilidad y los cortes 0,40 y 0,50 de §8 tienen sentido.
+    """
+    p = torch.as_tensor(p_anomalo, dtype=torch.float).clamp(1e-7, 1 - 1e-7)
+    odds = p / (1 - p) / razon_pesos
+    return odds / (1 + odds)
+
+
 @torch.no_grad()
 def predecir(modelo, nodos_activos, aristas_activas, escala_peso=1.0):
-    """{id: p_anomalo} para los nodos activos, con softmax sobre los logits."""
+    """{id: p_anomalo} calibrada para los nodos activos, con softmax sobre los logits."""
     if not nodos_activos:
         return {}
     modelo.eval()
     data = a_data(nodos_activos, aristas_activas, escala_peso=escala_peso)
     probabilidades = torch.softmax(modelo(data.x, data.edge_index, data.edge_weight), dim=1)[:, 1]
+    probabilidades = calibrar(probabilidades, getattr(modelo, "razon_pesos", 1.0))
     return {n["id"]: float(p) for n, p in zip(nodos_activos, probabilidades)}
 
 
@@ -99,6 +111,7 @@ def cargar_gcn(ruta):
     guardado = torch.load(ruta, map_location="cpu")
     modelo = GCNSoftCast()
     modelo.load_state_dict(guardado["estado"])
+    modelo.razon_pesos = guardado.get("razon_pesos", 1.0)
     modelo.eval()
     return modelo, guardado["escala_peso"]
 

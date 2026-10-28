@@ -17,7 +17,7 @@ from torch import nn
 from torch_geometric.loader import DataLoader
 
 from softcast.generador import generar_dataset, particionar
-from softcast.gnn import GCNSoftCast, MLPBase, contar_parametros
+from softcast.gnn import GCNSoftCast, MLPBase, calibrar, contar_parametros
 
 RAIZ = Path(__file__).resolve().parent.parent
 SEMILLA = 42
@@ -86,21 +86,39 @@ def entrenar_modelo(modelo, entrenamiento, validacion, pesos):
 
 
 @torch.no_grad()
-def evaluar(modelo, prueba):
-    """Precisión, recall y F1 de la clase Anómalo y matriz de confusión sobre los grafos de prueba."""
+def probabilidades(modelo, datos):
     modelo.eval()
-    reales, predichas = [], []
-    for lote in DataLoader(prueba, batch_size=TAMANO_LOTE):
-        logits = modelo(lote.x, lote.edge_index, lote.edge_weight)
-        reales.append(lote.y)
-        predichas.append(logits.argmax(dim=1))
-    y, y_hat = torch.cat(reales).numpy(), torch.cat(predichas).numpy()
+    ps, ys = [], []
+    for lote in DataLoader(datos, batch_size=TAMANO_LOTE):
+        ps.append(torch.softmax(modelo(lote.x, lote.edge_index, lote.edge_weight), dim=1)[:, 1])
+        ys.append(lote.y)
+    return torch.cat(ps), torch.cat(ys).numpy()
+
+
+def metricas_de(y, p, corte=0.5):
+    """Precisión, recall y F1 de la clase Anómalo y matriz de confusión con p ≥ corte."""
+    y_hat = (p >= corte).numpy().astype(int)
     precision, recall, f1, _ = precision_recall_fscore_support(y, y_hat, average="binary", pos_label=1, zero_division=0)
     return {
         "precision": float(precision),
         "recall": float(recall),
         "f1": float(f1),
         "matriz_confusion": confusion_matrix(y, y_hat, labels=[0, 1]).tolist(),
+    }
+
+
+def evaluar(modelo, prueba, razon_pesos):
+    """
+    Métricas sobre los grafos de prueba en tres puntos de operación:
+    calibrado con corte 0,50 (el que usa el prototipo para el estado Anómalo),
+    calibrado con corte 0,40 (Alerta temprana o peor) y sin calibrar (argmax).
+    """
+    p, y = probabilidades(modelo, prueba)
+    p_calibrada = calibrar(p, razon_pesos)
+    return {
+        "calibrado": metricas_de(y, p_calibrada, 0.5),
+        "corte_0_40": metricas_de(y, p_calibrada, 0.4),
+        "sin_calibrar": metricas_de(y, p, 0.5),
     }
 
 
@@ -132,7 +150,7 @@ def graficar_matrices(resultados, ruta):
         eje.set_yticks([0, 1], ["Normal", "Anómalo"])
         eje.set_xlabel("predicha")
         eje.set_ylabel("real")
-        eje.set_title(nombre)
+        eje.set_title(f"{nombre} (p calibrada ≥ 0,50)")
     fig.tight_layout()
     fig.savefig(ruta, dpi=150)
     plt.close(fig)
@@ -146,26 +164,29 @@ def main(escala_peso=1.0):
     y = torch.cat([d.y for d in dataset])
     porcentaje_anomalos = float(y.float().mean()) * 100
     pesos = pesos_de_clase(entrenamiento)
-    print(f"Anómalos en el dataset: {porcentaje_anomalos:.2f} %  (pesos de clase {pesos.tolist()})")
+    razon_pesos = float(pesos[1] / pesos[0])
+    print(f"Anómalos en el dataset: {porcentaje_anomalos:.2f} %  (pesos de clase {pesos.tolist()}, razón {razon_pesos:.2f})")
 
     resultados = {}
     for nombre, clase in [("GCN", GCNSoftCast), ("MLP", MLPBase)]:
         fijar_semillas()
         modelo = clase()
         r = entrenar_modelo(modelo, entrenamiento, validacion, pesos)
-        r["metricas"] = evaluar(modelo, prueba)
+        evaluacion = evaluar(modelo, prueba, razon_pesos)
+        r["metricas"] = evaluacion["calibrado"]
+        r["evaluacion"] = evaluacion
         r["parametros"] = contar_parametros(modelo)
         r["modelo"] = modelo
         resultados[nombre] = r
-        m = r["metricas"]
-        print(f"{nombre}: {r['parametros']} parámetros, {r['epocas']} épocas (mejor {r['mejor_epoca']}), "
-              f"precisión {m['precision']:.3f}, recall {m['recall']:.3f}, F1 {m['f1']:.3f}")
+        print(f"{nombre}: {r['parametros']} parámetros, {r['epocas']} épocas (mejor {r['mejor_epoca']})")
+        for punto, m in evaluacion.items():
+            print(f"   {punto:>12}: precisión {m['precision']:.3f}, recall {m['recall']:.3f}, F1 {m['f1']:.3f}")
 
     (RAIZ / "modelos").mkdir(exist_ok=True)
     (RAIZ / "salidas").mkdir(exist_ok=True)
     for nombre, archivo in [("GCN", "modelo_gcn.pt"), ("MLP", "modelo_mlp.pt")]:
-        torch.save({"estado": resultados[nombre]["modelo"].state_dict(), "escala_peso": escala_peso},
-                   RAIZ / "modelos" / archivo)
+        torch.save({"estado": resultados[nombre]["modelo"].state_dict(), "escala_peso": escala_peso,
+                    "razon_pesos": razon_pesos}, RAIZ / "modelos" / archivo)
 
     metricas = {
         "semilla": SEMILLA,
@@ -173,12 +194,15 @@ def main(escala_peso=1.0):
         "grafos": {"entrenamiento": len(entrenamiento), "validacion": len(validacion), "prueba": len(prueba)},
         "porcentaje_anomalos": porcentaje_anomalos,
         "pesos_de_clase": pesos.tolist(),
+        "razon_pesos": razon_pesos,
         **{
             nombre.lower(): {
                 "parametros": r["parametros"],
                 "epocas": r["epocas"],
                 "mejor_epoca": r["mejor_epoca"],
-                **r["metricas"],
+                **r["metricas"],  # calibrado, corte 0,50: el punto de operación del prototipo
+                "corte_0_40": r["evaluacion"]["corte_0_40"],
+                "sin_calibrar": r["evaluacion"]["sin_calibrar"],
             }
             for nombre, r in resultados.items()
         },

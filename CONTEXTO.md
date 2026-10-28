@@ -315,11 +315,13 @@ Conteo: 112 + 136 + 18 = 266.
 - Adam con lr = 0.01.
 - Máximo 200 épocas, con parada temprana (paciencia 20, monitoreando la pérdida de validación).
 - Semillas fijas: torch, numpy y random = 42.
+- **Calibración de p (añadida tras medir el escenario base):** los pesos de clase inversos a la frecuencia multiplican por `razon_pesos` (≈ 3,37) los odds a favor de Anómalo, y con `p ≥ 0,5` sin corregir la GCN marcaba como Anómalos a S1, S2 e IoT1, que la Tabla 2.1 da como Normales. Al guardar el modelo se guarda `razon_pesos`, y la inferencia divide los odds entre ese valor (`calibrar` en `gnn.py`). No usa datos de prueba ni cambia la arquitectura ni el entrenamiento.
 
 ### 7.7 Evaluación (se guarda, no se exige mostrarla en la interfaz)
 
 - Precisión, recall y F1 de la clase Anómalo, más la matriz de confusión, sobre los 150 grafos de prueba.
 - Baseline: un MLP sin estructura de grafo (6 → 16 → 8 → 2) con el mismo protocolo.
+- Las métricas se reportan en tres puntos de operación: calibrado con corte 0,50 (el del prototipo), calibrado con corte 0,40 (Alerta temprana o peor) y sin calibrar.
 - Se reportan las métricas de GCN y MLP **tal como salgan**. Se espera que la GCN supere al MLP en recall de Anómalo por la regla de vecindad, pero no se asume: si no lo supera, se explica por qué.
 
 ### 7.8 Inferencia en el prototipo
@@ -327,7 +329,7 @@ Conteo: 112 + 136 + 18 = 266.
 1. Se construye el subgrafo de nodos **no bloqueados** y aristas **no bloqueadas**.
 2. Se recalculan las features (la latencia media cambia si se bloquearon aristas).
 3. Se ejecuta la GCN.
-4. Para cada nodo activo se devuelve `p_anomalo`.
+4. Para cada nodo activo se devuelve `p_anomalo`, ya calibrada (§7.6). Con ella, el escenario base marca como Anómalos exactamente PC2, IoT2 e IoT7; S1 e IoT1 quedan en Alerta temprana.
 
 Si el archivo del modelo entrenado no existe, el backend usa el criterio de umbral como respaldo y lo indica en la respuesta con `fuente: "umbral"`; en el caso normal es `fuente: "gnn"`.
 

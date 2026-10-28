@@ -3,7 +3,7 @@ import torch
 
 from softcast.datos_base import ARISTAS, NODOS, RANGOS_LATENCIA
 from softcast.generador import categoria, generar_dataset, generar_grafos, particionar
-from softcast.gnn import GCNSoftCast, MLPBase, a_data, cargar_gcn, contar_parametros, predecir
+from softcast.gnn import GCNSoftCast, MLPBase, a_data, calibrar, cargar_gcn, contar_parametros, predecir
 from softcast.grafo import aplicar_bloqueos, construir_grafo
 
 ARISTAS_BASE = [{"origen": o, "destino": d, "latencia_ms": lat} for o, d, lat, _ in ARISTAS]
@@ -69,6 +69,29 @@ def test_predecir_devuelve_p_anomalo_por_nodo_activo():
     assert set(p) == {n["id"] for n in nodos}
     assert all(0.0 <= v <= 1.0 for v in p.values())
     assert predecir(GCNSoftCast(), [], []) == {}
+
+
+def test_calibrar_deshace_el_sesgo_de_los_pesos_de_clase():
+    assert calibrar(0.5, 1.0).item() == pytest.approx(0.5, abs=1e-6)
+    assert calibrar(0.5, 3.37).item() == pytest.approx(1 / (1 + 3.37), abs=1e-6)  # odds 1 / 3,37
+    assert calibrar(0.0, 3.37).item() == pytest.approx(0.0, abs=1e-5)
+    assert calibrar(1.0, 3.37).item() == pytest.approx(1.0, abs=1e-5)
+    p = torch.linspace(0.01, 0.99, 50)
+    assert (calibrar(p, 3.37) < p).all() and (calibrar(p, 3.37).diff() > 0).all()  # monótona y más baja
+
+
+def test_predecir_aplica_la_calibracion_del_modelo():
+    modelo = GCNSoftCast()
+    sin = predecir(modelo, NODOS, ARISTAS_BASE)
+    modelo.razon_pesos = 3.37
+    con = predecir(modelo, NODOS, ARISTAS_BASE)
+    assert all(con[i] < sin[i] for i in sin)
+
+
+def test_cargar_gcn_recupera_la_razon_de_pesos(tmp_path):
+    torch.save({"estado": GCNSoftCast().state_dict(), "escala_peso": 1.0, "razon_pesos": 3.37}, tmp_path / "m.pt")
+    modelo, _ = cargar_gcn(tmp_path / "m.pt")
+    assert modelo.razon_pesos == 3.37
 
 
 def test_cargar_gcn_sin_archivo_devuelve_none(tmp_path):
