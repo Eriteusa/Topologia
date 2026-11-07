@@ -155,7 +155,7 @@ export default function PanelControles({
           type="button"
           disabled={ocupado || !listo}
           onClick={onAzar}
-          className={`${clasesBoton} flex-auto border border-peligro bg-white text-[#b02a21] hover:bg-[#fdecea]`}
+          className={`${clasesBoton} flex-auto border border-[#d1352b] bg-white text-[#b02a21] hover:bg-[#fdecea]`}
         >
           Bloqueo aleatorio
         </button>

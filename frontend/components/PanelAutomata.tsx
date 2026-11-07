@@ -23,9 +23,9 @@ const NP = { x: 335, y: 190 };
 const posX = (i: number) => 58 + 110 * i;
 
 const GRIS = "#8b95a3";
-const VERDE = "#1e8449";
-const NARANJA = "#2b2f36"; // transición/estado activo (gris oscuro)
-const ROJO = "#d1352b";
+const VERDE = "#1f7a4d";
+const NARANJA = "#e8742a";
+const ROJO = "#c0392b";
 
 type Corrida = { cadena: string; resultado: ResultadoAutomata; paso: number };
 
@@ -191,7 +191,7 @@ export default function PanelAutomata({
           {[...corrida.cadena].map((simbolo, i) => (
             <span
               key={i}
-              className={i === paso - 1 ? "rounded bg-primario px-1 text-white" : i < paso - 1 ? "text-suave" : ""}
+              className={i === paso - 1 ? "rounded bg-[#ffe3cc] px-1 text-[#7a3200]" : i < paso - 1 ? "text-suave" : ""}
             >
               {simbolo}
             </span>
@@ -276,7 +276,7 @@ export default function PanelAutomata({
         {/* estados */}
         {estados.map((q, i) => {
           const esActivo = activo === q;
-          const fondo = esActivo ? "#dfe2e7" : visitados.has(q) && corrida ? "#e0f1e7" : "#f4f6f8";
+          const fondo = esActivo ? "#ffe3cc" : visitados.has(q) && corrida ? "#e3f3ea" : "#f4f6f8";
           const borde = esActivo ? NARANJA : visitados.has(q) && corrida ? VERDE : GRIS;
           return (
             <g key={q}>
@@ -327,7 +327,7 @@ export default function PanelAutomata({
       {terminada && corrida && (
         <div
           className={`flex animate-aparecer flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border px-4 py-2.5 ${
-            corrida.resultado.aceptada ? "border-normal bg-[#e0f1e7] text-[#14532d]" : "border-peligro bg-[#fdecea] text-[#9b241b]"
+            corrida.resultado.aceptada ? "border-[#1f7a4d] bg-[#e3f3ea] text-[#14532d]" : "border-[#d1352b] bg-[#fdecea] text-[#9b241b]"
           }`}
         >
           <strong className="text-[15px]">{corrida.resultado.aceptada ? "Aceptada" : "Rechazada"}</strong>
@@ -398,7 +398,7 @@ function FilaDelta({
       {sigma.map((s) => {
         const clave = `${q},${s}`;
         const destino = delta[q][s];
-        const fondo = celdaActual === clave ? "bg-[#dfe2e7] font-bold" : celdas.has(clave) ? "bg-[#e0f1e7] font-bold" : "";
+        const fondo = celdaActual === clave ? "bg-[#ffe3cc] font-bold" : celdas.has(clave) ? "bg-[#e3f3ea] font-bold" : "";
         return (
           <span
             key={s}

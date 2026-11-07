@@ -23,8 +23,8 @@ export default function Panel({
 export const clasesBoton =
   "min-h-11 cursor-pointer rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 export const clasesCampo =
-  "min-h-11 rounded-xl border border-borde-fuerte bg-white px-3 text-sm outline-none transition-colors focus:border-primario";
+  "min-h-11 rounded-xl border border-borde-fuerte bg-white px-3 text-sm outline-none transition-colors focus:border-[#2b2f36]";
 /** Botón principal: gris oscuro. */
-export const botonPrimario = "bg-primario text-white hover:bg-[#1a1d22]";
+export const botonPrimario = "bg-[#2b2f36] text-white hover:bg-[#1a1d22]";
 /** Botón secundario: blanco con borde. */
 export const botonSecundario = "border border-borde-fuerte bg-white text-tinta hover:bg-fondo";

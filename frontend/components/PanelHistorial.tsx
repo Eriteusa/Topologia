@@ -6,7 +6,7 @@ const COLUMNAS = "grid grid-cols-[40px_70px_minmax(0,1fr)_84px] items-center gap
 const ESTILO_MODO: Record<Bloqueo["modo"], string> = {
   inicial: "bg-[#e6eaef] text-[#2d3745]",
   aleatorio: "bg-[#fde8d8] text-[#7a3200]",
-  manual: "bg-[#dbe8f7] text-primario",
+  manual: "bg-[#dbe8f7] text-[#2b2f36]",
 };
 
 export default function PanelHistorial({ bloqueos }: { bloqueos: Bloqueo[] }) {

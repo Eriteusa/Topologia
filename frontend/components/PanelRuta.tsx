@@ -31,7 +31,7 @@ export default function PanelRuta({ ruta, previa }: { ruta: Ruta | null; previa:
   if (!ruta.existe) {
     return (
       <Panel titulo="Ruta óptima">
-        <div className="animate-aparecer rounded-xl border border-peligro bg-[#fdecea] px-4 py-3 font-semibold text-[#9b241b]">
+        <div className="animate-aparecer rounded-xl border border-[#d1352b] bg-[#fdecea] px-4 py-3 font-semibold text-[#9b241b]">
           Sin camino disponible
         </div>
       </Panel>
@@ -52,7 +52,7 @@ export default function PanelRuta({ ruta, previa }: { ruta: Ruta | null; previa:
             className="inline-flex animate-aparecer items-center gap-2"
             style={{ animationDelay: `${i * 90}ms` }}
           >
-            <span className="rounded-lg bg-primario px-3 py-1.5 text-sm font-semibold text-white">{id}</span>
+            <span className="rounded-lg bg-[#2b2f36] px-3 py-1.5 text-sm font-semibold text-white">{id}</span>
             {i < ruta.nodos.length - 1 && <span className="text-suave">→</span>}
           </span>
         ))}
@@ -89,7 +89,7 @@ export default function PanelRuta({ ruta, previa }: { ruta: Ruta | null; previa:
           <span className="text-suave">Anterior</span>
           <Cadena nodos={cambio.ruta.nodos} />
           <span>{cambio.ruta.latencia_total} ms</span>
-          <strong className={diferencia > 0 ? "text-peligro" : diferencia < 0 ? "text-normal" : ""}>
+          <strong className={diferencia > 0 ? "text-[#d1352b]" : diferencia < 0 ? "text-[#1e8449]" : ""}>
             {diferencia >= 0 ? "+" : "−"}
             {Math.abs(diferencia)} ms
           </strong>

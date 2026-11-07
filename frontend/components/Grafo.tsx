@@ -3,17 +3,13 @@
 import { useEffect, useState } from "react";
 import { clasesBoton } from "@/components/Panel";
 import { coma } from "@/lib/formato";
-import type { Arista, NivelAlerta, Nodo, Red, Ruta, Seleccion } from "@/lib/tipos";
+import type { Arista, Nodo, Red, Ruta, Seleccion } from "@/lib/tipos";
 
 const VISTA = { x: 150, y: 220, w: 650, h: 420 };
-// Semáforo: el color indica el estado; el tipo de dispositivo se distingue por la forma
-const COLOR_NIVEL: Record<Exclude<NivelAlerta, "Bloqueado">, { fondo: string; texto: string }> = {
-  Normal: { fondo: "#1e8449", texto: "#ffffff" },
-  "Alerta temprana": { fondo: "#f5b301", texto: "#2a1f00" },
-  Anómalo: { fondo: "#d1352b", texto: "#ffffff" },
-};
-const TINTA = "#2b2f36";
-const PELIGRO = "#d1352b";
+const COLOR_TIPO = { Servidor: "#14365e", PC: "#3f7cb5", IoT: "#2f8a5f" } as const;
+const NARANJA = "#e8742a";
+const TINTA = "#1f4e8c"; // anillo de selección
+const PELIGRO = "#c0392b";
 // Aristas que se dibujan curvas, como en la Figura 1 del documento (punto de control)
 const CURVAS: Record<string, [number, number]> = { "S2-IoT5": [520, 560] };
 
@@ -43,7 +39,7 @@ function trazoRuta(a: Arista, desde: string, pos: Record<string, Punto>): string
     : `M${inicio.x} ${inicio.y} L${fin.x} ${fin.y}`;
 }
 
-const radio = (n: Nodo) => (n.tipo === "Servidor" ? 23 : n.tipo === "IoT" ? 21 : 17);
+const radio = (n: Nodo) => (n.tipo === "Servidor" ? 23 : 17);
 
 type Props = {
   red: Red;
@@ -103,7 +99,7 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
         fontFamily="var(--font-sans)"
         onClick={() => onSeleccionar(null)}
       >
-        <g fill="none" stroke="#b4bac3" strokeWidth={1.5} strokeDasharray="2 5" opacity={0.6}>
+        <g fill="none" stroke="#a3acb8" strokeWidth={1.5} strokeDasharray="2 5" opacity={0.55}>
           {retiradas.map((a) => (
             <path key={a.id} d={geo[a.id].d} />
           ))}
@@ -114,8 +110,8 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
             key={a.id}
             d={geo[a.id].d}
             fill="none"
-            stroke="#a9b0ba"
-            strokeWidth={2.4}
+            stroke="#7d8999"
+            strokeWidth={2.5}
             strokeLinecap="round"
             strokeDasharray={a.rol === "Redundante" ? "8 6" : undefined}
           />
@@ -133,7 +129,7 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
           />
         ))}
 
-        <g fill="none" stroke={TINTA} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round">
+        <g fill="none" stroke={NARANJA} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round">
           {tramos.map(({ arista, d }, i) => (
             <path
               key={`${version}-${arista.id}`}
@@ -178,7 +174,7 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
               key={a.id}
               x={geo[a.id].mx}
               y={geo[a.id].my + 4}
-              fill={enRuta.has(a.id) ? TINTA : "#4a525d"}
+              fill={enRuta.has(a.id) ? "#b24f10" : "#2d3745"}
               fontWeight={enRuta.has(a.id) ? 700 : 500}
             >
               {a.latencia_ms}
@@ -217,8 +213,8 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
               if (!n || n.bloqueado) return null;
               return (
                 <g key={`${version}-${texto}`} className="animate-fundir" style={{ animationDelay: `${i * 160}ms` }}>
-                  <rect x={n.x - 27} y={n.y - radio(n) - 27} width={54} height={19} rx={9.5} fill={TINTA} />
-                  <text x={n.x} y={n.y - radio(n) - 14} fill="#ffffff">
+                  <rect x={n.x - 27} y={n.y - radio(n) - 27} width={54} height={19} rx={4} fill={NARANJA} />
+                  <text x={n.x} y={n.y - radio(n) - 14} fill="#2b1200">
                     {texto}
                   </text>
                 </g>
@@ -242,28 +238,6 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
   );
 }
 
-/** Figura del nodo según su tipo: cuadrado (servidor), círculo (PC) o rombo (IoT). */
-function Figura({ nodo: n, fondo, borde }: { nodo: Nodo; fondo: string; borde: string }) {
-  const comunes = { fill: fondo, stroke: borde, strokeWidth: 2, className: "nodo-figura" };
-  if (n.tipo === "Servidor") {
-    return <rect x={n.x - 21} y={n.y - 21} width={42} height={42} rx={11} {...comunes} />;
-  }
-  if (n.tipo === "IoT") {
-    return (
-      <rect
-        x={n.x - 15}
-        y={n.y - 15}
-        width={30}
-        height={30}
-        rx={6}
-        transform={`rotate(45 ${n.x} ${n.y})`}
-        {...comunes}
-      />
-    );
-  }
-  return <circle cx={n.x} cy={n.y} r={17} {...comunes} />;
-}
-
 function NodoSvg({
   nodo: n,
   seleccionado,
@@ -275,7 +249,6 @@ function NodoSvg({
 }) {
   const r = radio(n);
   const seleccionar = () => onSeleccionar({ tipo: "nodo", id: n.id });
-  const color = n.bloqueado ? null : COLOR_NIVEL[n.nivel_alerta as keyof typeof COLOR_NIVEL] ?? COLOR_NIVEL.Normal;
   return (
     <g
       tabIndex={0}
@@ -294,7 +267,7 @@ function NodoSvg({
       }}
     >
       {n.delta_p !== null && !n.bloqueado && (
-        <circle cx={n.x} cy={n.y} r={r + 5} fill="none" stroke={TINTA} strokeWidth={2} className="halo" />
+        <circle cx={n.x} cy={n.y} r={r + 6} fill="none" stroke="#c48a00" strokeWidth={2.5} className="halo" />
       )}
       {seleccionado && (
         <circle
@@ -314,34 +287,41 @@ function NodoSvg({
         r={r + 8}
         fill="none"
         strokeWidth={2.5}
-        className="stroke-transparent group-focus-visible:stroke-[#2b2f36]"
+        className="stroke-transparent group-focus-visible:stroke-[#1f4e8c]"
       />
-      {color ? (
+      {n.bloqueado ? (
         <>
-          <Figura nodo={n} fondo={color.fondo} borde="#ffffff" />
+          <circle cx={n.x} cy={n.y} r={r} fill="#c3c9d1" stroke="#8b95a3" strokeWidth={2} className="nodo-figura" />
+          <path
+            d={`M${n.x - 8} ${n.y - 8} l16 16 M${n.x + 8} ${n.y - 8} l-16 16`}
+            stroke="#3d4755"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+          <text x={n.x} y={n.y + r + 14} textAnchor="middle" fontSize={11} fontWeight={600} fill="#566171">
+            {n.id}
+          </text>
+        </>
+      ) : (
+        <>
+          <circle
+            cx={n.x}
+            cy={n.y}
+            r={r}
+            fill={COLOR_TIPO[n.tipo]}
+            stroke={n.estado === "Anómalo" ? "#d64545" : "none"}
+            strokeWidth={4}
+            className="nodo-figura"
+          />
           <text
             x={n.x}
             y={n.y + 4}
             textAnchor="middle"
             fontSize={n.tipo === "Servidor" ? 12 : 10.5}
             fontWeight={700}
-            fill={color.texto}
+            fill="#ffffff"
             pointerEvents="none"
           >
-            {n.id}
-          </text>
-        </>
-      ) : (
-        <>
-          <Figura nodo={n} fondo="#d5d9df" borde="#9aa1ab" />
-          <path
-            d={`M${n.x - 7} ${n.y - 7} l14 14 M${n.x + 7} ${n.y - 7} l-14 14`}
-            stroke="#4a525d"
-            strokeWidth={2.6}
-            strokeLinecap="round"
-            pointerEvents="none"
-          />
-          <text x={n.x} y={n.y + r + 15} textAnchor="middle" fontSize={11} fontWeight={600} fill="#5f6773">
             {n.id}
           </text>
         </>
@@ -418,7 +398,7 @@ function DetalleNodo({ nodo: n, ocupado, onBloquear }: { nodo: Nodo; ocupado: bo
           type="button"
           disabled={ocupado}
           onClick={onBloquear}
-          className={`${clasesBoton} bg-peligro text-white hover:bg-[#b82d24]`}
+          className={`${clasesBoton} bg-[#d1352b] text-white hover:bg-[#b82d24]`}
         >
           Bloquear nodo
         </button>
@@ -456,7 +436,7 @@ function DetalleArista({
           type="button"
           disabled={ocupado}
           onClick={onBloquear}
-          className={`${clasesBoton} bg-peligro text-white hover:bg-[#b82d24]`}
+          className={`${clasesBoton} bg-[#d1352b] text-white hover:bg-[#b82d24]`}
         >
           Bloquear arista
         </button>

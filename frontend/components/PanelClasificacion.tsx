@@ -1,4 +1,5 @@
 import Panel from "@/components/Panel";
+import Semaforo, { type LuzSemaforo } from "@/components/Semaforo";
 import { coma, conSigno } from "@/lib/formato";
 import type { NivelAlerta, Red } from "@/lib/tipos";
 
@@ -13,11 +14,27 @@ export const COLOR_NIVEL: Record<NivelAlerta, { barra: string; texto: string }> 
 };
 
 export default function PanelClasificacion({ red }: { red: Red }) {
+  const conteo = (nivel: NivelAlerta) => red.nodos.filter((n) => n.nivel_alerta === nivel).length;
+  const luz: LuzSemaforo = conteo("Anómalo") > 0 ? "rojo" : conteo("Alerta temprana") > 0 ? "ambar" : "verde";
   return (
     <Panel
       titulo="Clasificación y alertas"
-      derecha={<span className="text-xs text-suave">fuente: {red.fuente === "gnn" ? "GNN" : "umbral"}</span>}
+      derecha={
+        <span className="flex items-center gap-3">
+          <span className="text-xs text-suave">fuente: {red.fuente === "gnn" ? "GNN" : "umbral"}</span>
+          <Semaforo activa={luz} />
+        </span>
+      }
     >
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]" aria-label="Nodos por nivel">
+        {(["Normal", "Alerta temprana", "Anómalo"] as const).map((nivel) => (
+          <span key={nivel} className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full" style={{ background: COLOR_NIVEL[nivel].barra }} />
+            <strong className="font-semibold">{conteo(nivel)}</strong>
+            <span className="text-suave">{nivel === "Normal" ? "normales" : nivel === "Anómalo" ? "anómalos" : "en alerta"}</span>
+          </span>
+        ))}
+      </div>
       <div className={`${COLUMNAS} border-b border-borde pb-1.5 text-xs text-suave`}>
         <span>Nodo</span>
         <span>p anómalo</span>

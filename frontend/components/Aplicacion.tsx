@@ -8,7 +8,6 @@ import PanelClasificacion from "@/components/PanelClasificacion";
 import PanelControles, { type Controles } from "@/components/PanelControles";
 import PanelRuta, { type RutaPrevia } from "@/components/PanelRuta";
 import PanelSimular from "@/components/PanelSimular";
-import Semaforo, { type LuzSemaforo } from "@/components/Semaforo";
 import {
   ErrorApi,
   bloquear,
@@ -183,34 +182,16 @@ export default function Aplicacion() {
   }
 
   const bloqueados = red.nodos.filter((n) => n.bloqueado).length;
-  const conteo = {
-    Normal: red.nodos.filter((n) => n.nivel_alerta === "Normal").length,
-    "Alerta temprana": red.nodos.filter((n) => n.nivel_alerta === "Alerta temprana").length,
-    Anómalo: red.nodos.filter((n) => n.nivel_alerta === "Anómalo").length,
-  };
-  const luz: LuzSemaforo = conteo.Anómalo > 0 ? "rojo" : conteo["Alerta temprana"] > 0 ? "ambar" : "verde";
   const nodoSeleccionado = seleccion?.tipo === "nodo" ? red.nodos.find((n) => n.id === seleccion.id) : undefined;
 
   return (
     <main className="flex flex-col gap-5 px-7 pb-10 pt-6">
       <header className="flex animate-entrar flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex items-center gap-3">
-          <Semaforo activa={luz} />
-          <h1 className="m-0 text-[26px] font-bold tracking-tight">SoftCast</h1>
-        </div>
+        <h1 className="m-0 text-[26px] font-bold tracking-tight">SoftCast</h1>
         <dl className="m-0 flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
           <Dato nombre="Semilla" valor={String(red.semilla)} />
           <Dato nombre="Fuente" valor={red.fuente === "gnn" ? "GNN" : "umbral"} />
           <Dato nombre="Bloqueados" valor={`${bloqueados} de ${red.nodos.length}`} />
-          <div className="flex items-center gap-4" aria-label="Nodos por nivel">
-            {RESUMEN.map(({ nivel, color, nombre }) => (
-              <span key={nivel} className="inline-flex items-center gap-1.5" title={nombre}>
-                <span className="size-2.5 rounded-full" style={{ background: color }} />
-                <strong className="font-semibold">{conteo[nivel]}</strong>
-                <span className="text-suave">{nombre}</span>
-              </span>
-            ))}
-          </div>
         </dl>
       </header>
 
@@ -260,12 +241,6 @@ export default function Aplicacion() {
   );
 }
 
-const RESUMEN = [
-  { nivel: "Normal", color: "#1e8449", nombre: "normales" },
-  { nivel: "Alerta temprana", color: "#f5b301", nombre: "en alerta" },
-  { nivel: "Anómalo", color: "#d1352b", nombre: "anómalos" },
-] as const;
-
 function Dato({ nombre, valor }: { nombre: string; valor: string }) {
   return (
     <div className="flex items-baseline gap-1.5">
@@ -276,26 +251,21 @@ function Dato({ nombre, valor }: { nombre: string; valor: string }) {
 }
 
 function Leyenda() {
-  const icono = (hijo: React.ReactNode, ancho = 16) => (
-    <svg width={ancho} height={16} viewBox={`0 0 ${ancho} 16`} aria-hidden="true">
-      {hijo}
-    </svg>
-  );
-  const gris = { fill: "#c7ccd3", stroke: "#8b929c", strokeWidth: 1.5 };
+  const punto = (estilo: React.CSSProperties) => <span className="size-3.5 rounded-full" style={estilo} />;
+  const linea = (estilo: React.CSSProperties) => <span className="w-[22px]" style={estilo} />;
   const items: [React.ReactNode, string][] = [
-    [icono(<circle cx="8" cy="8" r="6" fill="#1e8449" />), "Normal"],
-    [icono(<circle cx="8" cy="8" r="6" fill="#f5b301" />), "Alerta temprana"],
-    [icono(<circle cx="8" cy="8" r="6" fill="#d1352b" />), "Anómalo"],
-    [icono(<circle cx="8" cy="8" r="5.5" fill="#d5d9df" stroke="#9aa1ab" strokeWidth="1.5" />), "Bloqueado"],
-    [icono(<rect x="2" y="2" width="12" height="12" rx="3.5" {...gris} />), "Servidor"],
-    [icono(<circle cx="8" cy="8" r="6" {...gris} />), "PC"],
-    [icono(<rect x="3.5" y="3.5" width="9" height="9" rx="2" transform="rotate(45 8 8)" {...gris} />), "IoT"],
-    [icono(<line x1="0" y1="8" x2="26" y2="8" stroke="#a9b0ba" strokeWidth="2.4" strokeDasharray="7 5" />, 26), "Enlace redundante"],
-    [icono(<line x1="1" y1="8" x2="25" y2="8" stroke="#2b2f36" strokeWidth="5" strokeLinecap="round" />, 26), "Ruta vigente"],
-    [icono(<line x1="0" y1="8" x2="26" y2="8" stroke="#d1352b" strokeWidth="2.5" strokeDasharray="3 5" />, 26), "Arista bloqueada"],
+    [punto({ background: "#14365e" }), "Servidor"],
+    [punto({ background: "#3f7cb5" }), "PC"],
+    [punto({ background: "#2f8a5f" }), "IoT"],
+    [punto({ background: "#fff", border: "3px solid #d64545" }), "Anómalo"],
+    [punto({ background: "#c3c9d1", border: "1px solid #8b95a3" }), "Bloqueado"],
+    [linea({ borderTop: "3px dashed #7d8999" }), "Enlace redundante"],
+    [linea({ borderTop: "5px solid #e8742a" }), "Ruta vigente"],
+    [linea({ borderTop: "3px dotted #c0392b" }), "Arista bloqueada"],
+    [punto({ border: "2px dashed #c48a00" }), "Cambió tras el bloqueo"],
   ];
   return (
-    <ul className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-2 p-0 text-[13px] text-suave">
+    <ul className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-2 p-0 text-[13px] text-[#3d4755]">
       {items.map(([marca, texto]) => (
         <li key={texto} className="inline-flex items-center gap-1.5">
           {marca}
