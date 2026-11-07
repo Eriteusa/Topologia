@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Panel, { clasesBoton, clasesCampo } from "@/components/Panel";
+import Panel, { botonPrimario, clasesBoton, clasesCampo } from "@/components/Panel";
 import type { Nodo } from "@/lib/tipos";
 
 type Props = {
@@ -29,7 +29,7 @@ function Deslizador({
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-[13px]">
         <label htmlFor={id}>{etiqueta}</label>
-        <span className="font-mono">
+        <span>
           {valor}
           {sufijo}
         </span>
@@ -41,7 +41,7 @@ function Deslizador({
         max={100}
         value={valor}
         onChange={(e) => onCambiar(Number(e.target.value))}
-        className="min-h-8 w-full accent-primario"
+        className="min-h-8 w-full accent-[#2b2f36]"
       />
     </div>
   );
@@ -97,7 +97,7 @@ export default function PanelSimular({ nodos, nodoId, ocupado, onCambiarNodo, on
           onAplicar(actual.nodo, actual.trafico, actual.cpu);
           setEdicion(null);
         }}
-        className={`${clasesBoton} bg-primario text-white`}
+        className={`${clasesBoton} ${botonPrimario}`}
       >
         Aplicar y reclasificar
       </button>

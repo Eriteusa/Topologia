@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clasesBoton } from "@/components/Panel";
 import { coma } from "@/lib/formato";
-import type { Arista, Nodo, Red, Ruta, Seleccion } from "@/lib/tipos";
+import type { Arista, NivelAlerta, Nodo, Red, Ruta, Seleccion } from "@/lib/tipos";
 
 const VISTA = { x: 150, y: 220, w: 650, h: 420 };
-const COLOR_TIPO = { Servidor: "#14365e", PC: "#3f7cb5", IoT: "#2f8a5f" } as const;
+// Semáforo: el color indica el estado; el tipo de dispositivo se distingue por la forma
+const COLOR_NIVEL: Record<Exclude<NivelAlerta, "Bloqueado">, { fondo: string; texto: string }> = {
+  Normal: { fondo: "#1e8449", texto: "#ffffff" },
+  "Alerta temprana": { fondo: "#f5b301", texto: "#2a1f00" },
+  Anómalo: { fondo: "#d1352b", texto: "#ffffff" },
+};
+const TINTA = "#2b2f36";
+const PELIGRO = "#d1352b";
 // Aristas que se dibujan curvas, como en la Figura 1 del documento (punto de control)
 const CURVAS: Record<string, [number, number]> = { "S2-IoT5": [520, 560] };
 
@@ -26,7 +33,17 @@ function geometria(a: Arista, pos: Record<string, Punto>) {
   return { d: `M${p.x} ${p.y} L${q.x} ${q.y}`, mx: (p.x + q.x) / 2, my: (p.y + q.y) / 2 };
 }
 
-const radio = (n: Nodo) => (n.tipo === "Servidor" ? 23 : 17);
+/** Trazo de una arista recorrida desde un extremo dado, para animar la ruta en su sentido. */
+function trazoRuta(a: Arista, desde: string, pos: Record<string, Punto>): string {
+  const inicio = pos[desde];
+  const fin = pos[desde === a.origen ? a.destino : a.origen];
+  const c = CURVAS[a.id];
+  return c
+    ? `M${inicio.x} ${inicio.y} Q${c[0]} ${c[1]} ${fin.x} ${fin.y}`
+    : `M${inicio.x} ${inicio.y} L${fin.x} ${fin.y}`;
+}
+
+const radio = (n: Nodo) => (n.tipo === "Servidor" ? 23 : n.tipo === "IoT" ? 21 : 17);
 
 type Props = {
   red: Red;
@@ -38,6 +55,14 @@ type Props = {
 };
 
 export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, onBloquear }: Props) {
+  // Versión de la ruta: al cambiar, el trazo vuelve a dibujarse
+  const [rutaVista, setRutaVista] = useState(ruta);
+  const [version, setVersion] = useState(0);
+  if (rutaVista !== ruta) {
+    setRutaVista(ruta);
+    setVersion((v) => v + 1);
+  }
+
   useEffect(() => {
     const cerrar = (e: KeyboardEvent) => e.key === "Escape" && onSeleccionar(null);
     window.addEventListener("keydown", cerrar);
@@ -47,6 +72,19 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
   const pos: Record<string, Punto> = Object.fromEntries(red.nodos.map((n) => [n.id, { x: n.x, y: n.y }]));
   const enRuta = new Set(ruta?.existe ? ruta.aristas.map((a) => a.id) : []);
   const geo = Object.fromEntries(red.aristas.map((a) => [a.id, geometria(a, pos)]));
+
+  // Tramos de la ruta en el orden del recorrido
+  const tramos: { arista: Arista; d: string }[] = [];
+  if (ruta?.existe) {
+    for (let i = 0; i < ruta.nodos.length - 1; i++) {
+      const u = ruta.nodos[i];
+      const v = ruta.nodos[i + 1];
+      const arista = red.aristas.find(
+        (a) => (a.origen === u && a.destino === v) || (a.origen === v && a.destino === u),
+      );
+      if (arista) tramos.push({ arista, d: trazoRuta(arista, u, pos) });
+    }
+  }
 
   const retiradas = red.aristas.filter((a) => !a.activa && !a.bloqueada);
   const bloqueadas = red.aristas.filter((a) => a.bloqueada);
@@ -62,9 +100,10 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
         className="block h-auto w-full"
         role="group"
         aria-label="Grafo de la red SoftCast"
+        fontFamily="var(--font-sans)"
         onClick={() => onSeleccionar(null)}
       >
-        <g fill="none" stroke="#a3acb8" strokeWidth={1.5} strokeDasharray="2 5" opacity={0.55}>
+        <g fill="none" stroke="#b4bac3" strokeWidth={1.5} strokeDasharray="2 5" opacity={0.6}>
           {retiradas.map((a) => (
             <path key={a.id} d={geo[a.id].d} />
           ))}
@@ -75,19 +114,34 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
             key={a.id}
             d={geo[a.id].d}
             fill="none"
-            stroke="#7d8999"
-            strokeWidth={2.5}
+            stroke="#a9b0ba"
+            strokeWidth={2.4}
+            strokeLinecap="round"
             strokeDasharray={a.rol === "Redundante" ? "8 6" : undefined}
           />
         ))}
 
         {bloqueadas.map((a) => (
-          <path key={a.id} d={geo[a.id].d} fill="none" stroke="#c0392b" strokeWidth={2.5} strokeDasharray="3 5" />
+          <path
+            key={a.id}
+            d={geo[a.id].d}
+            fill="none"
+            stroke={PELIGRO}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeDasharray="3 5"
+          />
         ))}
 
-        <g fill="none" stroke="#e8742a" strokeWidth={6} strokeLinecap="round">
-          {activas.filter((a) => enRuta.has(a.id)).map((a) => (
-            <path key={a.id} d={geo[a.id].d} />
+        <g fill="none" stroke={TINTA} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round">
+          {tramos.map(({ arista, d }, i) => (
+            <path
+              key={`${version}-${arista.id}`}
+              d={d}
+              pathLength={1}
+              className="trazo"
+              style={{ animationDelay: `${i * 130}ms` }}
+            />
           ))}
         </g>
 
@@ -98,7 +152,8 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
             fill="none"
             stroke="transparent"
             strokeWidth={16}
-            className="cursor-pointer"
+            strokeLinecap="round"
+            className="area-arista cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onSeleccionar({ tipo: "arista", id: a.id });
@@ -109,7 +164,6 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
         ))}
 
         <g
-          fontFamily="var(--font-plex-mono), monospace"
           fontSize={12}
           fontWeight={500}
           textAnchor="middle"
@@ -124,7 +178,7 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
               key={a.id}
               x={geo[a.id].mx}
               y={geo[a.id].my + 4}
-              fill={enRuta.has(a.id) ? "#b24f10" : "#2d3745"}
+              fill={enRuta.has(a.id) ? TINTA : "#4a525d"}
               fontWeight={enRuta.has(a.id) ? 700 : 500}
             >
               {a.latencia_ms}
@@ -133,11 +187,11 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
         </g>
 
         {bloqueadas.map((a) => (
-          <g key={`x-${a.id}`} pointerEvents="none">
-            <circle cx={geo[a.id].mx} cy={geo[a.id].my} r={9} fill="#ffffff" stroke="#c0392b" strokeWidth={1.5} />
+          <g key={`x-${a.id}`} pointerEvents="none" className="animate-fundir">
+            <circle cx={geo[a.id].mx} cy={geo[a.id].my} r={9} fill="#ffffff" stroke={PELIGRO} strokeWidth={1.5} />
             <path
               d={`M${geo[a.id].mx - 4} ${geo[a.id].my - 4} l8 8 M${geo[a.id].mx + 4} ${geo[a.id].my - 4} l-8 8`}
-              stroke="#c0392b"
+              stroke={PELIGRO}
               strokeWidth={2.2}
               strokeLinecap="round"
             />
@@ -154,17 +208,17 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
         ))}
 
         {ruta && (
-          <g fontFamily="var(--font-plex-sans), sans-serif" fontSize={11} fontWeight={700} textAnchor="middle" pointerEvents="none">
+          <g fontSize={11} fontWeight={700} textAnchor="middle" pointerEvents="none">
             {[
               { id: ruta.origen, texto: "origen" },
               { id: ruta.destino, texto: "destino" },
-            ].map(({ id, texto }) => {
+            ].map(({ id, texto }, i) => {
               const n = red.nodos.find((m) => m.id === id);
               if (!n || n.bloqueado) return null;
               return (
-                <g key={texto}>
-                  <rect x={n.x - 26} y={n.y - radio(n) - 25} width={52} height={17} rx={4} fill="#e8742a" />
-                  <text x={n.x} y={n.y - radio(n) - 13} fill="#2b1200">
+                <g key={`${version}-${texto}`} className="animate-fundir" style={{ animationDelay: `${i * 160}ms` }}>
+                  <rect x={n.x - 27} y={n.y - radio(n) - 27} width={54} height={19} rx={9.5} fill={TINTA} />
+                  <text x={n.x} y={n.y - radio(n) - 14} fill="#ffffff">
                     {texto}
                   </text>
                 </g>
@@ -175,17 +229,39 @@ export default function Grafo({ red, ruta, seleccion, ocupado, onSeleccionar, on
       </svg>
 
       {nodoSel && (
-        <Popover x={nodoSel.x} y={nodoSel.y} desplazamiento={radio(nodoSel) + 12}>
+        <Popover key={`n-${nodoSel.id}`} x={nodoSel.x} y={nodoSel.y} desplazamiento={radio(nodoSel) + 12}>
           <DetalleNodo nodo={nodoSel} ocupado={ocupado} onBloquear={() => onBloquear("nodo", nodoSel.id)} />
         </Popover>
       )}
       {aristaSel && (
-        <Popover x={geo[aristaSel.id].mx} y={geo[aristaSel.id].my} desplazamiento={16}>
+        <Popover key={`a-${aristaSel.id}`} x={geo[aristaSel.id].mx} y={geo[aristaSel.id].my} desplazamiento={16}>
           <DetalleArista arista={aristaSel} ocupado={ocupado} onBloquear={() => onBloquear("arista", aristaSel.id)} />
         </Popover>
       )}
     </div>
   );
+}
+
+/** Figura del nodo según su tipo: cuadrado (servidor), círculo (PC) o rombo (IoT). */
+function Figura({ nodo: n, fondo, borde }: { nodo: Nodo; fondo: string; borde: string }) {
+  const comunes = { fill: fondo, stroke: borde, strokeWidth: 2, className: "nodo-figura" };
+  if (n.tipo === "Servidor") {
+    return <rect x={n.x - 21} y={n.y - 21} width={42} height={42} rx={11} {...comunes} />;
+  }
+  if (n.tipo === "IoT") {
+    return (
+      <rect
+        x={n.x - 15}
+        y={n.y - 15}
+        width={30}
+        height={30}
+        rx={6}
+        transform={`rotate(45 ${n.x} ${n.y})`}
+        {...comunes}
+      />
+    );
+  }
+  return <circle cx={n.x} cy={n.y} r={17} {...comunes} />;
 }
 
 function NodoSvg({
@@ -199,12 +275,13 @@ function NodoSvg({
 }) {
   const r = radio(n);
   const seleccionar = () => onSeleccionar({ tipo: "nodo", id: n.id });
+  const color = n.bloqueado ? null : COLOR_NIVEL[n.nivel_alerta as keyof typeof COLOR_NIVEL] ?? COLOR_NIVEL.Normal;
   return (
     <g
       tabIndex={0}
       role="button"
-      aria-label={`${n.id}, ${n.estado}`}
-      className="group cursor-pointer outline-none"
+      aria-label={`${n.id}, ${n.nivel_alerta}`}
+      className="nodo group cursor-pointer outline-none"
       onClick={(e) => {
         e.stopPropagation();
         seleccionar();
@@ -217,10 +294,19 @@ function NodoSvg({
       }}
     >
       {n.delta_p !== null && !n.bloqueado && (
-        <circle cx={n.x} cy={n.y} r={r + 6} fill="none" stroke="#c48a00" strokeWidth={2.5} strokeDasharray="4 3" />
+        <circle cx={n.x} cy={n.y} r={r + 5} fill="none" stroke={TINTA} strokeWidth={2} className="halo" />
       )}
       {seleccionado && (
-        <circle cx={n.x} cy={n.y} r={r + 8} fill="none" stroke="#1f4e8c" strokeWidth={2.5} strokeDasharray="5 3" />
+        <circle
+          cx={n.x}
+          cy={n.y}
+          r={r + 8}
+          fill="none"
+          stroke={TINTA}
+          strokeWidth={2.5}
+          strokeDasharray="5 3"
+          className="animate-fundir"
+        />
       )}
       <circle
         cx={n.x}
@@ -228,39 +314,34 @@ function NodoSvg({
         r={r + 8}
         fill="none"
         strokeWidth={2.5}
-        className="stroke-transparent group-focus-visible:stroke-[#1f4e8c]"
+        className="stroke-transparent group-focus-visible:stroke-[#2b2f36]"
       />
-      {n.bloqueado ? (
+      {color ? (
         <>
-          <circle cx={n.x} cy={n.y} r={r} fill="#c3c9d1" stroke="#8b95a3" strokeWidth={2} />
-          <path
-            d={`M${n.x - 8} ${n.y - 8} l16 16 M${n.x + 8} ${n.y - 8} l-16 16`}
-            stroke="#3d4755"
-            strokeWidth={3}
-            strokeLinecap="round"
-          />
-          <text x={n.x} y={n.y + r + 14} textAnchor="middle" fontSize={11} fontWeight={600} fill="#566171">
-            {n.id}
-          </text>
-        </>
-      ) : (
-        <>
-          <circle
-            cx={n.x}
-            cy={n.y}
-            r={r}
-            fill={COLOR_TIPO[n.tipo]}
-            stroke={n.estado === "Anómalo" ? "#d64545" : "none"}
-            strokeWidth={4}
-          />
+          <Figura nodo={n} fondo={color.fondo} borde="#ffffff" />
           <text
             x={n.x}
             y={n.y + 4}
             textAnchor="middle"
             fontSize={n.tipo === "Servidor" ? 12 : 10.5}
             fontWeight={700}
-            fill="#ffffff"
+            fill={color.texto}
+            pointerEvents="none"
           >
+            {n.id}
+          </text>
+        </>
+      ) : (
+        <>
+          <Figura nodo={n} fondo="#d5d9df" borde="#9aa1ab" />
+          <path
+            d={`M${n.x - 7} ${n.y - 7} l14 14 M${n.x + 7} ${n.y - 7} l-14 14`}
+            stroke="#4a525d"
+            strokeWidth={2.6}
+            strokeLinecap="round"
+            pointerEvents="none"
+          />
+          <text x={n.x} y={n.y + r + 15} textAnchor="middle" fontSize={11} fontWeight={600} fill="#5f6773">
             {n.id}
           </text>
         </>
@@ -285,8 +366,7 @@ function Popover({
   const aLaIzquierda = px > 55;
   return (
     <div
-      role="dialog"
-      className="absolute z-10 flex w-[250px] flex-col gap-2 rounded-lg border border-[#b9c1cc] bg-white p-3 shadow-[0_6px_18px_rgba(20,54,94,0.18)]"
+      className="absolute z-10 w-[250px]"
       style={{
         left: `${px}%`,
         top: `${Math.min(Math.max(py, 24), 76)}%`,
@@ -294,7 +374,13 @@ function Popover({
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {children}
+      <div
+        role="dialog"
+        className="flex animate-aparecer flex-col gap-2 rounded-2xl border border-borde bg-white p-3.5 shadow-[0_10px_30px_rgba(16,24,40,0.16)]"
+        style={{ transformOrigin: aLaIzquierda ? "right center" : "left center" }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -303,7 +389,7 @@ function Fila({ nombre, valor }: { nombre: string; valor: React.ReactNode }) {
   return (
     <>
       <span className="text-suave">{nombre}</span>
-      <span className="text-right font-mono">{valor}</span>
+      <span className="text-right">{valor}</span>
     </>
   );
 }
@@ -321,10 +407,10 @@ function DetalleNodo({ nodo: n, ocupado, onBloquear }: { nodo: Nodo; ocupado: bo
         <Fila nombre="Tráfico" valor={n.trafico} />
         <Fila nombre="CPU" valor={`${n.cpu} %`} />
         <Fila nombre="p anómalo" valor={n.p_anomalo === null ? "—" : coma(n.p_anomalo)} />
-        <Fila nombre="Nivel" valor={<span className="font-sans">{n.nivel_alerta}</span>} />
+        <Fila nombre="Nivel" valor={n.nivel_alerta} />
       </div>
       <div className="text-xs text-suave">
-        Secuencia <span className="font-mono text-tinta">{n.secuencia}</span> ·{" "}
+        Secuencia <span className="font-semibold text-tinta">{n.secuencia}</span> ·{" "}
         {n.secuencia_valida ? "aceptada" : "rechazada"}
       </div>
       {!n.bloqueado && (
@@ -332,7 +418,7 @@ function DetalleNodo({ nodo: n, ocupado, onBloquear }: { nodo: Nodo; ocupado: bo
           type="button"
           disabled={ocupado}
           onClick={onBloquear}
-          className={`${clasesBoton} bg-peligro text-white`}
+          className={`${clasesBoton} bg-peligro text-white hover:bg-[#b82d24]`}
         >
           Bloquear nodo
         </button>
@@ -354,7 +440,7 @@ function DetalleArista({
   return (
     <>
       <div className="flex items-baseline justify-between gap-2">
-        <strong className="font-mono text-[15px]">
+        <strong className="text-[15px]">
           {a.origen}–{a.destino}
         </strong>
         <span className="text-xs text-suave">{a.rol}</span>
@@ -363,14 +449,14 @@ function DetalleArista({
         <Fila nombre="Origen" valor={a.origen} />
         <Fila nombre="Destino" valor={a.destino} />
         <Fila nombre="Latencia" valor={`${a.latencia_ms} ms`} />
-        <Fila nombre="Estado" valor={<span className="font-sans">{estado}</span>} />
+        <Fila nombre="Estado" valor={estado} />
       </div>
       {a.activa && (
         <button
           type="button"
           disabled={ocupado}
           onClick={onBloquear}
-          className={`${clasesBoton} bg-peligro text-white`}
+          className={`${clasesBoton} bg-peligro text-white hover:bg-[#b82d24]`}
         >
           Bloquear arista
         </button>

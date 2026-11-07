@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Panel, { clasesBoton, clasesCampo } from "@/components/Panel";
+import Panel, { botonPrimario, botonSecundario, clasesBoton, clasesCampo } from "@/components/Panel";
 import { ErrorApi, validarCadena } from "@/lib/api";
 import type { DefinicionAutomata, ResultadoAutomata } from "@/lib/tipos";
 
@@ -23,9 +23,9 @@ const NP = { x: 335, y: 190 };
 const posX = (i: number) => 58 + 110 * i;
 
 const GRIS = "#8b95a3";
-const VERDE = "#1f7a4d";
-const NARANJA = "#e8742a";
-const ROJO = "#c0392b";
+const VERDE = "#1e8449";
+const NARANJA = "#2b2f36"; // transición/estado activo (gris oscuro)
+const ROJO = "#d1352b";
 
 type Corrida = { cadena: string; resultado: ResultadoAutomata; paso: number };
 
@@ -133,7 +133,7 @@ export default function PanelAutomata({
   return (
     <Panel
       titulo="Autómata de comunicación"
-      derecha={<span className="font-mono text-[13px] text-suave">L(M) = {"{ a b c⁺ d e }"}</span>}
+      derecha={<span className="text-[13px] text-suave">L(M) = {"{ a b c⁺ d e }"}</span>}
     >
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex min-w-[200px] flex-1 flex-col gap-1">
@@ -148,14 +148,14 @@ export default function PanelAutomata({
             spellCheck={false}
             onChange={(e) => setCadena(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && validar(cadena)}
-            className={`${clasesCampo} font-mono text-base`}
+            className={`${clasesCampo} text-base`}
           />
         </div>
         <button
           type="button"
           disabled={ocupado}
           onClick={() => validar(cadena)}
-          className={`${clasesBoton} bg-primario text-white`}
+          className={`${clasesBoton} ${botonPrimario}`}
         >
           Validar
         </button>
@@ -164,7 +164,7 @@ export default function PanelAutomata({
             type="button"
             disabled={ocupado}
             onClick={() => usar(secuenciaNodo.secuencia)}
-            className={`${clasesBoton} border border-borde-fuerte bg-white font-medium`}
+            className={`${clasesBoton} ${botonSecundario}`}
           >
             Secuencia de {secuenciaNodo.id}
           </button>
@@ -179,7 +179,7 @@ export default function PanelAutomata({
             type="button"
             disabled={ocupado}
             onClick={() => usar(e)}
-            className="min-h-11 cursor-pointer rounded-md border border-[#c3cad4] bg-fondo px-3.5 font-mono text-sm disabled:opacity-50"
+            className="min-h-11 cursor-pointer rounded-xl border border-borde-fuerte bg-fondo px-3.5 text-sm hover:bg-white disabled:opacity-50"
           >
             {e}
           </button>
@@ -187,11 +187,11 @@ export default function PanelAutomata({
       </div>
 
       {corrida && corrida.cadena !== "" && (
-        <div className="font-mono text-lg tracking-widest" aria-label={`Cadena ${corrida.cadena}`}>
+        <div className="text-lg font-semibold tracking-widest" aria-label={`Cadena ${corrida.cadena}`}>
           {[...corrida.cadena].map((simbolo, i) => (
             <span
               key={i}
-              className={i === paso - 1 ? "rounded bg-[#ffe3cc] px-0.5 text-[#7a3200]" : i < paso - 1 ? "text-suave" : ""}
+              className={i === paso - 1 ? "rounded bg-primario px-1 text-white" : i < paso - 1 ? "text-suave" : ""}
             >
               {simbolo}
             </span>
@@ -254,7 +254,7 @@ export default function PanelAutomata({
                   strokeWidth={anchoTransicion(clave)}
                   markerEnd={marcador(clave)}
                 />
-                <text x={x} y={Y - 64} textAnchor="middle" className="font-mono" fontSize={15} fontWeight={600} fill={color}>
+                <text x={x} y={Y - 64} textAnchor="middle" fontSize={15} fontWeight={600} fill={color}>
                   {texto}
                 </text>
               </g>
@@ -265,8 +265,8 @@ export default function PanelAutomata({
           const x2 = posX(j) - sentido * (R + 2);
           return (
             <g key={clave}>
-              <line x1={x1} y1={Y} x2={x2} y2={Y} stroke={color} strokeWidth={anchoTransicion(clave)} markerEnd={marcador(clave)} />
-              <text x={(x1 + x2) / 2} y={Y - 12} textAnchor="middle" className="font-mono" fontSize={15} fontWeight={600} fill={color}>
+              <line className="suave" x1={x1} y1={Y} x2={x2} y2={Y} stroke={color} strokeWidth={anchoTransicion(clave)} markerEnd={marcador(clave)} />
+              <text x={(x1 + x2) / 2} y={Y - 12} textAnchor="middle" fontSize={15} fontWeight={600} fill={color}>
                 {texto}
               </text>
             </g>
@@ -276,13 +276,13 @@ export default function PanelAutomata({
         {/* estados */}
         {estados.map((q, i) => {
           const esActivo = activo === q;
-          const fondo = esActivo ? "#ffe3cc" : visitados.has(q) && corrida ? "#e3f3ea" : "#f4f6f8";
+          const fondo = esActivo ? "#dfe2e7" : visitados.has(q) && corrida ? "#e0f1e7" : "#f4f6f8";
           const borde = esActivo ? NARANJA : visitados.has(q) && corrida ? VERDE : GRIS;
           return (
             <g key={q}>
-              <circle cx={posX(i)} cy={Y} r={R} fill={fondo} stroke={borde} strokeWidth={esActivo ? 4 : 2.5} />
-              {F.includes(q) && <circle cx={posX(i)} cy={Y} r={R + 5} fill="none" stroke={borde} strokeWidth={2.5} />}
-              <text x={posX(i)} y={Y + 5} textAnchor="middle" className="font-mono" fontSize={15} fontWeight={600} fill="#1c2430">
+              <circle cx={posX(i)} cy={Y} r={R} fill={fondo} stroke={borde} strokeWidth={esActivo ? 4 : 2.5} className="suave" />
+              {F.includes(q) && <circle cx={posX(i)} cy={Y} r={R + 5} fill="none" stroke={borde} strokeWidth={2.5} className="suave" />}
+              <text x={posX(i)} y={Y + 5} textAnchor="middle" fontSize={15} fontWeight={600} fill="#1c2430">
                 {q}
               </text>
               <text
@@ -307,37 +307,38 @@ export default function PanelAutomata({
             cy={NP.y}
             r={R - 1}
             fill={activo === "qNP" ? "#fde2e0" : "#f4f6f8"}
+            className="suave"
             stroke={activo === "qNP" ? ROJO : GRIS}
             strokeWidth={activo === "qNP" ? 4 : 2}
             strokeDasharray={activo === "qNP" ? undefined : "4 3"}
           />
-          <text x={NP.x} y={NP.y + 5} textAnchor="middle" className="font-mono" fontSize={14} fontWeight={600} fill="#1c2430">
+          <text x={NP.x} y={NP.y + 5} textAnchor="middle" fontSize={14} fontWeight={600} fill="#1c2430">
             qNP
           </text>
         </g>
       </svg>
 
       {aviso && (
-        <p role="alert" className="m-0 rounded-md bg-[#fdecea] px-3 py-2 text-[13px] text-[#8c2520]">
+        <p role="alert" className="m-0 animate-aparecer rounded-xl bg-[#fdecea] px-3 py-2 text-[13px] text-[#9b241b]">
           {aviso}
         </p>
       )}
 
       {terminada && corrida && (
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border px-3 py-2.5 ${
-            corrida.resultado.aceptada ? "border-[#1f7a4d] bg-[#e3f3ea] text-[#14532d]" : "border-[#c0392b] bg-[#fdecea] text-[#8c2520]"
+          className={`flex animate-aparecer flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border px-4 py-2.5 ${
+            corrida.resultado.aceptada ? "border-normal bg-[#e0f1e7] text-[#14532d]" : "border-peligro bg-[#fdecea] text-[#9b241b]"
           }`}
         >
           <strong className="text-[15px]">{corrida.resultado.aceptada ? "Aceptada" : "Rechazada"}</strong>
-          <span className="font-mono text-sm">{recorrido.join(" → ")}</span>
+          <span className="text-sm">{recorrido.join(" → ")}</span>
           {corrida.resultado.error && <span className="text-sm">{corrida.resultado.error}</span>}
         </div>
       )}
 
       {/* Los 5 parámetros formales M = (Q, Σ, δ, q0, F) */}
       <div className="flex flex-col gap-2 border-t border-borde pt-3">
-        <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1 font-mono text-sm">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1 text-sm">
           <strong>Q</strong>
           <span>{`{ ${Q.join(", ")} }`}</span>
           <strong>Σ</strong>
@@ -350,12 +351,12 @@ export default function PanelAutomata({
           <span />
         </div>
         <div
-          className="grid overflow-hidden rounded-md border border-[#c3cad4] text-center font-mono text-[13px]"
+          className="grid overflow-hidden rounded-xl border border-borde-fuerte text-center text-[13px]"
           style={{ gridTemplateColumns: `64px repeat(${sigma.length}, minmax(0, 1fr))` }}
         >
           <span className="bg-[#e6eaef] px-1 py-1.5" />
           {sigma.map((s) => (
-            <span key={s} className="border-l border-[#c3cad4] bg-[#e6eaef] px-1 py-1.5 font-semibold">
+            <span key={s} className="border-l border-borde-fuerte bg-[#e6eaef] px-1 py-1.5 font-semibold">
               {s}
             </span>
           ))}
@@ -393,15 +394,15 @@ function FilaDelta({
 }) {
   return (
     <>
-      <span className="border-t border-[#c3cad4] bg-fondo py-1.5 pl-2 text-left font-semibold">{etiqueta}</span>
+      <span className="border-t border-borde-fuerte bg-fondo py-1.5 pl-2 text-left font-semibold">{etiqueta}</span>
       {sigma.map((s) => {
         const clave = `${q},${s}`;
         const destino = delta[q][s];
-        const fondo = celdaActual === clave ? "bg-[#ffe3cc] font-bold" : celdas.has(clave) ? "bg-[#e3f3ea] font-bold" : "";
+        const fondo = celdaActual === clave ? "bg-[#dfe2e7] font-bold" : celdas.has(clave) ? "bg-[#e0f1e7] font-bold" : "";
         return (
           <span
             key={s}
-            className={`border-l border-t border-[#c3cad4] px-1 py-1.5 ${fondo} ${destino === "qNP" && !celdas.has(clave) ? "text-[#8a929e]" : ""}`}
+            className={`border-l border-t border-borde-fuerte px-1 py-1.5 ${fondo} ${destino === "qNP" && !celdas.has(clave) ? "text-[#8a929e]" : ""}`}
           >
             {destino}
           </span>

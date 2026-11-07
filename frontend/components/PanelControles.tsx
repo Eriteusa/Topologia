@@ -1,6 +1,6 @@
 "use client";
 
-import Panel, { clasesBoton, clasesCampo } from "@/components/Panel";
+import Panel, { botonPrimario, botonSecundario, clasesBoton, clasesCampo } from "@/components/Panel";
 import type { Nodo } from "@/lib/tipos";
 
 export type Controles = {
@@ -82,14 +82,14 @@ export default function PanelControles({
             value={valores.semilla}
             onChange={(e) => onCambiar({ semilla: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && onNuevaSesion()}
-            className={`${clasesCampo} w-full font-mono text-base`}
+            className={`${clasesCampo} w-full text-base`}
           />
         </div>
         <button
           type="button"
           disabled={ocupado}
           onClick={onNuevaSesion}
-          className={`${clasesBoton} whitespace-nowrap border border-primario bg-white text-primario`}
+          className={`${clasesBoton} whitespace-nowrap ${botonSecundario}`}
         >
           Nueva sesión
         </button>
@@ -137,7 +137,7 @@ export default function PanelControles({
           type="checkbox"
           checked={valores.bloqueoInicial}
           onChange={(e) => onCambiar({ bloqueoInicial: e.target.checked })}
-          className="size-4 accent-primario"
+          className="size-4 accent-[#2b2f36]"
         />
         Bloqueo inicial
       </label>
@@ -147,7 +147,7 @@ export default function PanelControles({
           type="button"
           disabled={ocupado || !listo}
           onClick={onCalcular}
-          className={`${clasesBoton} flex-auto bg-primario text-white`}
+          className={`${clasesBoton} flex-auto ${botonPrimario}`}
         >
           Calcular ruta
         </button>
@@ -155,7 +155,7 @@ export default function PanelControles({
           type="button"
           disabled={ocupado || !listo}
           onClick={onAzar}
-          className={`${clasesBoton} flex-auto border border-peligro bg-white text-[#8c2520]`}
+          className={`${clasesBoton} flex-auto border border-peligro bg-white text-[#b02a21] hover:bg-[#fdecea]`}
         >
           Bloqueo aleatorio
         </button>
@@ -163,14 +163,14 @@ export default function PanelControles({
           type="button"
           disabled={ocupado}
           onClick={onReiniciar}
-          className={`${clasesBoton} flex-auto border border-borde-fuerte bg-white font-medium`}
+          className={`${clasesBoton} flex-auto ${botonSecundario}`}
         >
           Reiniciar
         </button>
       </div>
 
       {error && (
-        <p role="alert" className="m-0 rounded-md bg-[#fdecea] px-3 py-2 text-[13px] text-[#8c2520]">
+        <p role="alert" className="m-0 animate-aparecer rounded-xl bg-[#fdecea] px-3 py-2 text-[13px] text-[#9b241b]">
           {error}
         </p>
       )}
